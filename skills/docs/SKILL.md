@@ -1,6 +1,6 @@
 ---
 name: docs
-description: Write or refresh a repo's self-contained agent context — a thin AGENTS.md router (hard-capped at 120 lines) plus a docs/ library it points into, with CLAUDE.md as a symlink so every toolchain reads one file. Three modes — bare "/docs" inits or refreshes, "/docs check" audits read-only and writes nothing, "/docs migrate <path>" lifts execution context out of an external notes file into the repo. Use when the user says "/docs", "run docs", "set up agent context", "make this repo self-contained", "the AGENTS.md is stale", "why is this session so slow to load", or starts a new repo that needs context. The point is that a teammate, another machine, or a cold agent can work the repo correctly with nothing but the repo — so it never writes an outside path into a repo, never puts a credential value in a file, and never commits or pushes.
+description: Write or refresh a repo's self-contained agent context — a thin AGENTS.md router (hard-capped at 120 lines) plus a docs/ library it points into, with CLAUDE.md as a symlink so every toolchain reads one file. Also keeps the two files that go stale on their own current — CHANGELOG.md derived from merges on the default branch, backlog.md collected from TODO(harden) markers and unresolved spec questions. Four modes — bare "/docs" inits or refreshes, "/docs check" audits read-only and writes nothing, "/docs changelog" catches up just the changelog, "/docs migrate <path>" lifts execution context out of an external notes file into the repo. Use when the user says "/docs", "run docs", "set up agent context", "make this repo self-contained", "the AGENTS.md is stale", "update the changelog", "why is this session so slow to load", or starts a new repo that needs context. The point is that a teammate, another machine, or a cold agent can work the repo correctly with nothing but the repo — so it never writes an outside path into a repo, never puts a credential value in a file, never invents a roadmap, and never commits or pushes.
 ---
 
 # /docs — make the repo explain itself, cheaply
@@ -25,8 +25,9 @@ So this skill does three things: **collapse the two files into one**, **cut the
 outside dependency**, and **hold a hard budget** so the file that loads every
 session stays small enough that nobody notices it.
 
-`$ARGUMENTS`: `check` | `migrate <path>` | *(empty)*. Empty means init-or-refresh —
-work out which by looking. Anything else, say what you're assuming and proceed.
+`$ARGUMENTS`: `check` | `changelog` | `migrate <path>` | *(empty)*. Empty means
+init-or-refresh — work out which by looking. Anything else, say what you're
+assuming and proceed.
 
 ---
 
@@ -362,6 +363,22 @@ Read-only. Report and stop. No edits, no symlink, no `docs/` creation.
 | Empty | a routing row pointing at a file with no content below its `> Purpose:` |
 
 Order findings worst-first. Offer the fix; don't apply it.
+
+---
+
+## Mode: `changelog` — catch the changelog up, nothing else
+
+Runs Phase 2b's changelog half and stops. No `AGENTS.md` rewrite, no re-derivation,
+no reconcile. Use it when the changelog has fallen behind and the rest of the
+context is fine — a full run costs far more and changes files you didn't ask about.
+
+Also the right target for a commit-time hook that wants the changelog current
+without paying for the whole skill.
+
+**One rule it does not relax: merged work only.** If the current branch isn't the
+default branch, say what would be recorded once it merges and write nothing. A
+changelog that lists unmerged work is worse than one that's behind, because behind
+is obvious and wrong is not.
 
 ---
 
