@@ -64,6 +64,8 @@ of contents makes it read everything; a table of triggers makes it read one.
 | `docs/design.md` | Before touching any view, partial, CSS, or JS controller |
 | `docs/deploy.md` | Deploying, adding an env var, or chasing a prod-only failure |
 | `docs/decisions.md` | A rule looks arbitrary, or you're about to relitigate one |
+| `docs/CHANGELOG.md` | Asking what shipped recently, or when something changed |
+| `docs/backlog.md` | Picking up work, or wondering what's deliberately unfinished |
 | `docs/prds/` | Implementing a spec — the spec is a complete instruction |
 ```
 
@@ -176,12 +178,107 @@ quiet and write.
 
 ---
 
+## Phase 2b — Refresh the two files that go stale on their own
+
+`architecture.md`, `conventions.md` and `design.md` change when someone decides
+something. **`CHANGELOG.md` and `backlog.md` go out of date on their own, every
+week, without anyone touching them.** So every run refreshes them from evidence.
+
+Both are derived. Neither is invented. If the evidence isn't there, the file
+doesn't get written — see the empty-file rule below.
+
+### `docs/CHANGELOG.md` — what actually shipped
+
+**Only merged work counts.** Read the default branch, not the branch you're
+standing on. A feature sitting on `build/thing` has not shipped, and writing it
+into a changelog is a claim that will be wrong for as long as that branch lives.
+
+```bash
+DEF=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|origin/||')
+DEF=${DEF:-main}
+LAST=$(grep -m1 -oE '\(([0-9a-f]{7,40})\)' docs/CHANGELOG.md 2>/dev/null | tr -d '()')
+git log --first-parent --no-merges ${LAST:+$LAST..}"origin/$DEF" \
+  --pretty=format:'%h%x09%ad%x09%s' --date=short
+```
+
+`--first-parent` keeps it to what landed on the branch rather than every commit
+inside every merged feature. The last recorded sha is the watermark — everything
+since it is new, and nothing before it gets rewritten.
+
+**First run on an existing repo: do not backfill the whole history.** A project
+that has been going a while has hundreds of commits, and turning all of them into
+a changelog produces a file that breaks the size cap on creation and that nobody
+will ever read. Cover the **most recent ~15 dated groups** and stop. Then say
+plainly what you skipped:
+
+> Changelog started at 2026-08-13 (~15 entries). 140 earlier commits are in git
+> history and were not backfilled.
+
+Silently truncating is the failure — a changelog that starts mid-project without
+saying so reads as "nothing happened before this", which is worse than not having
+one. The line above costs nothing and makes the file honest.
+
+Then, per entry:
+
+- **One line per user-visible change**, not per commit. Five commits that built one
+  feature are one line. Two unrelated fixes are two lines.
+- **Written for a person, not a reviewer.** What someone can now do, or what
+  stopped being broken. No file names, no class names, no framework names.
+- **Group by date**, newest first, and keep the sha in parentheses so the next run
+  knows where to resume.
+- **Internal-only work a user cannot perceive** — refactors, test coverage, CI
+  config — is left out entirely rather than dressed up.
+
+```markdown
+> Purpose: what shipped, newest first. Merged work only.
+
+## 2026-08-18
+- Actors can set the hours they're available, and matching respects them (45709e6)
+- Dragging a card into an occupied column stops failing (a1b2c3d)
+```
+
+**Respect what a human wrote.** If an entry already exists for a sha, leave it
+exactly as it is — a person's sentence about their own work beats a derived one.
+Only append what has no entry yet.
+
+**Then apply the size cap** (below): keep ~15 dated entries live, roll older ones
+into `docs/changelog-archive.md` verbatim, newest-first.
+
+### `docs/backlog.md` — what's known to be left
+
+Collected, never invented. **Do not write a roadmap.** Guessing what a project
+should do next and putting it in the repo is the worst failure this skill has,
+because the next agent will read it as a decision somebody made.
+
+Three sources, all verifiable:
+
+```bash
+grep -rn "TODO(harden)\|TODO:\|FIXME" --include='*.rb' --include='*.js' --include='*.ts' --include='*.py' . | grep -v node_modules
+grep -rln "## Open Questions" docs/prds/ 2>/dev/null
+```
+
+| Source | Becomes |
+|---|---|
+| `TODO(harden)` markers | "Deferred tests" — the file, and what it says is untested |
+| `TODO:` / `FIXME` in app code | "Known gaps" — file:line and the text |
+| Unresolved `## Open Questions` in specs | "Undecided" — the question and which spec it's in |
+| A connected issue tracker | **one line pointing at it**, never a mirrored copy — a stale mirror of a live tracker is worse than no file |
+
+If the repo's real backlog is a tracker, `backlog.md` is four lines: where the
+tracker is, what the deferred-test list is, and nothing else. That's a complete
+and honest file.
+
+---
+
 ## Phase 3 — Write
 
 1. `AGENTS.md`, inside budget, ending with `Last verified: YYYY-MM-DD`.
 2. The `docs/` files **that have real content**. Never scaffold an empty one. An
    empty file is a lie the routing table tells, and half the repos that have tried
-   this have a `docs/` tree of empty directories to prove it.
+   this have a `docs/` tree of empty directories to prove it. This applies to the
+   two derived files as much as the rest: **no merged commits since the watermark
+   means no changelog write, and zero markers with no tracker means no
+   `backlog.md`** — and in that case the routing row doesn't get added either.
 3. The symlink, from inside the repo root:
    ```bash
    ln -sfn AGENTS.md CLAUDE.md && ls -la CLAUDE.md
@@ -231,6 +328,9 @@ name is out of scope.
 - Line count and byte count against 120 / 6KB.
 - What moved down into `docs/`, and what each routing row now points at.
 - **Everything dropped in reconciliation**, listed.
+- **Changelog entries added** (how many, and the sha range), or why none were —
+  "no merges since `<sha>`" is a fine answer and a useful one.
+- **Backlog deltas** — markers that appeared or got cleared since last run.
 - Anything you couldn't answer, named as an open question rather than guessed.
 
 **Never commit. Never push.** Leave the tree dirty for review.
@@ -251,6 +351,8 @@ Read-only. Report and stop. No edits, no symlink, no `docs/` creation.
 |---|---|
 | Budget | `AGENTS.md` over 120 lines or 6KB |
 | Freshness | `Last verified` older than 60 days |
+| Changelog behind | merges on the default branch newer than the last recorded sha |
+| Backlog behind | `TODO(harden)` markers in the code that `backlog.md` doesn't list |
 | Dead rows | a routing row points at a file that doesn't exist |
 | Drift | the file names a version the manifest contradicts |
 | Outside coupling | any absolute path outside the repo, or a reference to a personal notes system |
