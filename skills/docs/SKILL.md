@@ -1,6 +1,6 @@
 ---
 name: docs
-description: Write or refresh a repo's self-contained agent context — a thin AGENTS.md router (hard-capped at 120 lines) plus a docs/ library it points into, with CLAUDE.md as a symlink so every toolchain reads one file. Also keeps the two files that go stale on their own current — CHANGELOG.md derived from merges on the default branch, backlog.md collected from TODO(harden) markers and unresolved spec questions. Four modes — bare "/docs" inits or refreshes, "/docs check" audits read-only and writes nothing, "/docs changelog" catches up just the changelog, "/docs migrate <path>" lifts execution context out of an external notes file into the repo. Use when the user says "/docs", "run docs", "set up agent context", "make this repo self-contained", "the AGENTS.md is stale", "update the changelog", "why is this session so slow to load", or starts a new repo that needs context. The point is that a teammate, another machine, or a cold agent can work the repo correctly with nothing but the repo — so it never writes an outside path into a repo, never puts a credential value in a file, never invents a roadmap, and never commits or pushes.
+description: Write or refresh a repo's self-contained agent context — a thin AGENTS.md router (hard-capped at 120 lines) plus a docs/ library it points into, with CLAUDE.md as a symlink so every toolchain reads one file. Also seeds the decision log (docs/decisions.md — why the load-bearing rules are what they are, derived from prose, PRDs and git history), writes the Recording-your-work contract into docs/conventions.md so any agent knows what to leave behind, and keeps the two files that go stale on their own current — CHANGELOG.md derived from merges on the default branch, backlog.md collected from TODO(harden) markers and unresolved spec questions. docs/ROADMAP.md is audited for staleness but never written here: direction comes from the owner via /save, and a roadmap inferred from a repo is a guess wearing the costume of a decision. Four modes — bare "/docs" inits or refreshes, "/docs check" audits read-only and writes nothing, "/docs changelog" catches up just the changelog, "/docs migrate <path>" lifts execution context out of an external notes file into the repo. Use when the user says "/docs", "run docs", "set up agent context", "make this repo self-contained", "the AGENTS.md is stale", "update the changelog", "why is this session so slow to load", or starts a new repo that needs context. The point is that a teammate, another machine, or a cold agent can work the repo correctly with nothing but the repo — so it never writes an outside path into a repo, never puts a credential value in a file, never invents a roadmap, and never commits or pushes.
 ---
 
 # /docs — make the repo explain itself, cheaply
@@ -42,7 +42,8 @@ docs/
 ├── design.md           ← design system, or a route to an existing root DESIGN.md
 ├── deploy.md           ← hosts, envs, runbook, and where the secrets live
 ├── decisions.md        ← ADR log, newest first, a paragraph each
-├── backlog.md          ← what's next, or "the issue tracker is the backlog"
+├── backlog.md          ← what's deliberately unfinished, collected from the code
+├── ROADMAP.md          ← direction, set by the owner. NEVER authored by this skill
 ├── CHANGELOG.md        ← what shipped
 └── prds/               ← specs, if the project works that way
 ```
@@ -67,6 +68,7 @@ of contents makes it read everything; a table of triggers makes it read one.
 | `docs/decisions.md` | A rule looks arbitrary, or you're about to relitigate one |
 | `docs/CHANGELOG.md` | Asking what shipped recently, or when something changed |
 | `docs/backlog.md` | Picking up work, or wondering what's deliberately unfinished |
+| `docs/ROADMAP.md` | Picking up work — what's being built now, and the live constraints |
 | `docs/prds/` | Implementing a spec — the spec is a complete instruction |
 ```
 
@@ -179,7 +181,7 @@ quiet and write.
 
 ---
 
-## Phase 2b — Refresh the two files that go stale on their own
+## Phase 2b — Refresh the files that go stale on their own
 
 `architecture.md`, `conventions.md` and `design.md` change when someone decides
 something. **`CHANGELOG.md` and `backlog.md` go out of date on their own, every
@@ -187,6 +189,9 @@ week, without anyone touching them.** So every run refreshes them from evidence.
 
 Both are derived. Neither is invented. If the evidence isn't there, the file
 doesn't get written — see the empty-file rule below.
+
+**`ROADMAP.md` is the third file that rots, and this skill does not refresh it** — it
+has no repo-internal source. Audit it, never author it. See below.
 
 ### `docs/CHANGELOG.md` — what actually shipped
 
@@ -242,14 +247,34 @@ Then, per entry:
 exactly as it is — a person's sentence about their own work beats a derived one.
 Only append what has no entry yet.
 
+**Where a deploy-note service is already wired** — a status page that publishes a
+plain-English note per deploy — *that* is the source, and `CHANGELOG.md` is derived
+from its published notes rather than re-derived from commits. Two changelogs for one
+repo is exactly the DRY failure this skill exists to prevent, and the deploy note is
+the better text: it was written about a release a human shipped, not inferred from
+subject lines. Where no such service is wired, git is the source, as above.
+
 **Then apply the size cap** (below): keep ~15 dated entries live, roll older ones
 into `docs/changelog-archive.md` verbatim, newest-first.
 
 ### `docs/backlog.md` — what's known to be left
 
-Collected, never invented. **Do not write a roadmap.** Guessing what a project
-should do next and putting it in the repo is the worst failure this skill has,
-because the next agent will read it as a decision somebody made.
+Collected, never invented. **Never write direction into this file.** Guessing what a
+project should do next is the worst failure this skill has, because the next agent
+reads it as a decision somebody made.
+
+**backlog vs. ROADMAP — the line is where it came from, not how it reads.**
+
+| | `backlog.md` | `ROADMAP.md` |
+|---|---|---|
+| Source | the code — markers, unresolved spec questions, tracker pointer | the owner, through `/save` |
+| Written by | this skill, every run | `/save` only |
+| Says | what is deliberately unfinished | what is being built, in what order |
+
+If a gap is discoverable from the tree, it belongs to `backlog.md` **only** — the same
+item in both files is the duplication this skill exists to prevent. A `/docs` run that
+finds a roadmap item already collected in the backlog reports the overlap; it does not
+resolve it by editing `ROADMAP.md`.
 
 Three sources, all verifiable:
 
@@ -271,6 +296,89 @@ and honest file.
 
 ---
 
+### `docs/ROADMAP.md` — audit it, never author it
+
+This is the one file in `docs/` with **no repo-internal source**. Direction lives in the
+owner's own notes, which this skill cannot read and must never go looking for. A roadmap
+inferred from commits and open branches is a guess wearing the costume of a decision, and
+the next agent has no way to tell the difference.
+
+So: **`/save` authors it. This skill only audits.** On every run:
+
+- If it exists, read its `Last updated:` stamp. Older than ~30 days → report it as stale.
+  Do not refresh it, do not delete it, do not "helpfully" reconcile it against the tree.
+- If it is missing, say so in the report and move on. Do not scaffold it — an empty or
+  invented roadmap is worse than none.
+- If it contradicts the repo (naming a feature the code no longer has, citing a spec
+  number that resolves to a different file), **report the contradiction precisely**. That
+  is the highest-value thing a run can find: it means the owner's notes rotted and the
+  projection copied the rot.
+
+---
+
+## Phase 2c — `docs/decisions.md`, the file that's always missing
+
+The highest-value file in the library and the one most repos don't have, because
+unlike every other file here it has **no single mechanical source** — so a run that
+only derives skips it, and the routing row points at nothing.
+
+It is worth the effort it costs. Architecture tells an agent how the system is
+shaped; decisions tell it which parts are *load-bearing on purpose*. Without it,
+every arbitrary-looking rule is a candidate for "cleanup" by the next agent.
+
+### Where the content comes from
+
+| Source | What to take |
+|---|---|
+| Existing context prose | Any rule already written with a *because* — lift it, keep the reasoning |
+| `docs/prds/` | What a spec chose, and what it **rejected and why** — the rejection is usually the decision |
+| `git log` on the default branch | Reverts, "fix the fix", and commit bodies that argue a position |
+| An external notes file | **Only** via `migrate` — never go hunting for one |
+
+The richest source of all — the owner's own notes — is deliberately **not** on this list.
+This skill cannot read them and must not try. `/save` is what carries a decision from
+those notes into `decisions.md` at the moment it's made, which is why this skill only ever
+seeds a backlog of decisions that were already written down somewhere in the repo.
+
+### The format
+
+Newest first, one heading per decision, one paragraph under it:
+
+```markdown
+> Purpose: why the load-bearing rules are what they are. Newest first. Read one of
+> these before relitigating a decision that looks arbitrary.
+
+# Decisions
+
+## 2026-07-29 — teams, with solo as a team of one
+Every user gets a personal team at signup, so there is exactly one code path instead
+of a solo path and a team path. The active team is per-session, making "which stream
+am I in" a device-level choice. (PRD-017)
+```
+
+- **The heading is the decision as a claim**, not a topic. "teams, with solo as a team
+  of one" gives you the answer; "team model" makes you read the paragraph to find it.
+- **The why is the whole point.** Name the constraint that forced the call. A rule
+  carrying its reason survives a refactor; a bare rule gets deleted by whoever finds
+  it inconvenient.
+- **Cite the commit, PR or PRD** wherever there is one.
+- **Reversals stay.** A superseded decision is never deleted — a newer entry above it
+  says what changed and why. The record of a reversed call is what stops it being
+  re-made in six months.
+- **Technical only.** No rates, no invoicing, no deal history, no headcount — these
+  files get read by client engineers.
+- Cap ~40 entries; older ones roll into `docs/decisions-archive.md`, verbatim.
+
+### Ownership
+
+This skill **seeds and audits** the file. It does not own it: from here it's appended
+at decision time by `/save`, on the branch the work is on — and by any other agent
+working the repo, which is what the `Recording your work` contract in `conventions.md`
+exists to tell them. A `/docs` run that finds recent decisions in the git log that aren't in the file should say so rather than
+silently backfilling months of them.
+
+---
+
 ## Phase 3 — Write
 
 1. `AGENTS.md`, inside budget, ending with `Last verified: YYYY-MM-DD`.
@@ -280,7 +388,24 @@ and honest file.
    two derived files as much as the rest: **no merged commits since the watermark
    means no changelog write, and zero markers with no tracker means no
    `backlog.md`** — and in that case the routing row doesn't get added either.
-3. The symlink, from inside the repo root:
+3. **The `Recording your work` contract in `conventions.md`** — always, on every run,
+   even in a repo with nothing else worth putting there. This is the one section that is
+   *written rather than derived*, because it isn't a fact about the repo; it's the
+   instruction that keeps the repo true. Without it an agent knows what to read and
+   nothing about what to leave behind, and the library decays the moment someone who
+   isn't the owner does the work.
+
+   It says: what earns an entry (a call the next agent would find arbitrary, a rejected
+   alternative, something shipped, something deliberately left undone, a question these
+   docs should have answered), where each goes, the decision format, **create the target
+   file with a `> Purpose:` header if it doesn't exist**, technical content only — never
+   a person or a rate — and commit docs on their own without pushing.
+
+   Pair it with a short `## Before you finish` pointer in `AGENTS.md`. The contract lives
+   in `conventions.md` and not the router because it is identical in every repo, and
+   eleven copies of it would spend the router's whole budget saying the same thing.
+
+4. The symlink, from inside the repo root:
    ```bash
    ln -sfn AGENTS.md CLAUDE.md && ls -la CLAUDE.md
    ```
@@ -295,9 +420,9 @@ and honest file.
    On **Windows** a symlink needs Administrator or Developer Mode, so there
    `CLAUDE.md` is a one-line file containing `@AGENTS.md` instead — the import
    loads it at session start. Same result, no elevation.
-4. If `.gitignore` excludes `CLAUDE.md`, say so. A symlink nobody clones is a
+5. If `.gitignore` excludes `CLAUDE.md`, say so. A symlink nobody clones is a
    symlink that doesn't exist for the team.
-5. Verify with `/context` in a fresh session — `CLAUDE.md` must appear under
+6. Verify with `/context` in a fresh session — `CLAUDE.md` must appear under
    **Memory files**, once.
 
 Pre-existing docs usually need only the `> Purpose:` header prepended — leave their
@@ -332,6 +457,9 @@ name is out of scope.
 - **Changelog entries added** (how many, and the sha range), or why none were —
   "no merges since `<sha>`" is a fine answer and a useful one.
 - **Backlog deltas** — markers that appeared or got cleared since last run.
+- **`ROADMAP.md`**: its `Last updated:` age, or that it's missing — never refreshed here.
+  Any contradiction between it and the tree is reported in full; that is the signal the
+  owner's notes have rotted.
 - Anything you couldn't answer, named as an open question rather than guessed.
 
 **Never commit. Never push.** Leave the tree dirty for review.
@@ -361,6 +489,10 @@ Read-only. Report and stop. No edits, no symlink, no `docs/` creation.
 | Secrets | a credential value, not a location, in any context file |
 | Unbounded | a file behind a routing row over ~500 lines |
 | Empty | a routing row pointing at a file with no content below its `> Purpose:` |
+| Roadmap stale | `ROADMAP.md` present with a `Last updated:` older than ~30 days, or none at all |
+| Roadmap contradicts the tree | it names a feature the code no longer has, or cites a spec number that resolves to a different file |
+| Contract missing | `conventions.md` has no `Recording your work` section, or `AGENTS.md` no `Before you finish` pointer |
+| Contract dangling | that section points at a `docs/` file the repo doesn't have and doesn't say to create it |
 
 Order findings worst-first. Offer the fix; don't apply it.
 
@@ -430,8 +562,15 @@ delete the user's notes. Surface duplication you trip over; don't go fix it.
 - **Verify over recency** when two files disagree.
 - **Move content down, never thin it.** Over budget means the router is doing the
   library's job, not that the content is unnecessary.
-- **Never scaffold empty files.**
-- **Never commit, never push, never deploy.**
+- **Never scaffold empty files.** The one exception is the `Recording your work`
+  contract, which is written rather than derived — it is the instruction that keeps
+  everything else true.
+- **Never author `ROADMAP.md`.** Direction comes from the owner through `/save`. Audit
+  it, report it stale, report where it contradicts the tree — never write it.
+- **Record decisions where the work is** — on the branch that carries it. It rides the
+  promotion to the default branch like the code. Never hand-sync one across branches.
+- **Never commit, never push, never deploy.** (`/save` commits its own incremental
+  decision entries; a full `/docs` rewrite is too big to land unreviewed.)
 - **Never write to the user's notes** — `migrate` reads and proposes; that's all.
 - **Never put a credential value anywhere.** Location only.
 
