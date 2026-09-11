@@ -1,6 +1,6 @@
 ---
 name: recap
-description: End-of-session summary in plain English — what got built, exactly how to test it by hand, what has to be set up before it works anywhere but this laptop, and a copy-paste block for the team. Use when the user says "recap", "/recap", "what did we just do", "summarize this session", "what do I need to test", "give me something to send the team", or asks for a wrap-up at the end of a long build or after finishing a spec. Also use when returning to a branch cold and needing the context back fast. Never a code review, never a diff read back.
+description: "End-of-session summary in plain English: what got built, how to test it by hand, what must be set up elsewhere, a copy-paste block for the team. Use on /recap, 'what did we just do', 'give me something to send the team', or when returning to a branch cold. Not a code review, not a diff read back."
 ---
 
 # /recap — what we built, and what you should go click

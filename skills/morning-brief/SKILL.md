@@ -1,6 +1,6 @@
 ---
 name: morning-brief
-description: Generate a fast, scannable morning tech briefing in the terminal — Hacker News, Reddit, GitHub Trending, YouTube uploads from the last 24h, Product Hunt, trending topics, and news RSS, all fetched in parallel and printed as one compact block of clickable links. Use when the user says "morning brief", "/morning-brief", "what's happening today", "catch me up", or wants a daily tech news scan. Writes no files, keeps no state, and skips any source that fails rather than showing errors.
+description: "Fast, scannable morning tech briefing in the terminal: Hacker News, Reddit, GitHub Trending, YouTube, Product Hunt, trending topics, news RSS, fetched in parallel and printed as one block of links. Use on /morning-brief, 'catch me up', 'what's happening today'. Writes no files, skips failing sources silently."
 ---
 
 # /morning-brief — the day's tech news, in one screen

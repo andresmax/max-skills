@@ -1,6 +1,6 @@
 ---
 name: harden
-description: Write the test suite that was deliberately deferred during the first build, now that the feature has been used and confirmed to behave right. Finds TODO(harden) markers and thinly-covered recent changes, establishes what "correct" means from the spec rather than from the implementation, writes the suite, then proves each test bites by breaking its subject and watching it fail. Use when the user says "harden", "/harden", "write the real tests now", "add proper test coverage", or comes back to a feature after using it. Refuses to run on code that is still in flux or that has never met its real dependency — hardening an undecided design just recreates the problem.
+description: "Write the test suite that was deferred during the first build, now that the feature has been used and confirmed right. Finds TODO(harden) markers and thin coverage, derives correctness from the spec, writes the suite, proves each test bites by breaking its subject. Use on /harden, 'write the real tests now', 'add proper coverage'. Refuses on code still in flux or that never met its real dependency."
 ---
 
 # /harden — write the tests you deliberately deferred

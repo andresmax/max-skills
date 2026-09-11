@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Autopilot feature pipeline — brief, research, spec (your green light), build, verify, land on a branch. One invocation runs the whole thing with exactly two human touchpoints, the brief up front and the spec approval before any code. Auto-detects the repo's stack, test command and reviewers; works in any repo. Use when the user says "/ship", "ship this feature", "build me X end to end", "run the pipeline", or hands over a feature to be built unattended. Stops at a feature branch and stops there — never pushes, never opens a PR, never merges, never deploys.
+description: "Autopilot feature pipeline: brief, research, spec (Max's green light), build, verify, land on a feature branch. Two human touchpoints only, the brief and the spec approval. Auto-detects stack, test command and reviewers in any repo. Use on /ship, 'ship this feature', 'build X end to end'. Never pushes, opens a PR, merges or deploys."
 ---
 
 # /ship — brief, spec, build, verify, branch
