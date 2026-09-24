@@ -1,6 +1,6 @@
 ---
 name: docs
-description: "Write or refresh a repo's agent context: a thin AGENTS.md router (max 120 lines) plus a docs/ library, CLAUDE.md symlinked to it, decisions.md, conventions.md, CHANGELOG.md and backlog.md. Modes: bare /docs inits or refreshes, /docs check audits read-only, /docs changelog, /docs migrate <path>. Never writes ROADMAP.md, never writes outside paths or credentials into a repo. Use on /docs, 'set up agent context', 'the AGENTS.md is stale', or a new repo."
+description: "For client repos; product repos keep a minimal AGENTS.md and no docs/. Write or refresh a repo's agent context: a thin AGENTS.md router (max 120 lines) plus a docs/ library, CLAUDE.md symlinked to it, decisions.md, conventions.md, CHANGELOG.md and backlog.md. Modes: bare /docs inits or refreshes, /docs check audits read-only, /docs changelog, /docs migrate <path>. Never writes ROADMAP.md, never writes outside paths or credentials into a repo. Use on /docs, 'set up agent context', 'the AGENTS.md is stale', or a new repo."
 ---
 
 # /docs — make the repo explain itself, cheaply
@@ -176,8 +176,8 @@ and carry the reasoning with the rule. A rule with its why survives a refactor; 
 bare rule gets "improved" away by the next person who finds it inconvenient.
 
 What genuinely can't be inferred — a host, a gotcha, why a decision went the way it
-did — goes into **one** `AskUserQuestion` call, four questions maximum. Then go
-quiet and write.
+did — goes into **one** `AskUserQuestion` call, four questions maximum. Then write
+without further questions.
 
 ---
 
@@ -422,8 +422,8 @@ silently backfilling months of them.
    loads it at session start. Same result, no elevation.
 5. If `.gitignore` excludes `CLAUDE.md`, say so. A symlink nobody clones is a
    symlink that doesn't exist for the team.
-6. Verify with `/context` in a fresh session — `CLAUDE.md` must appear under
-   **Memory files**, once.
+6. Tell the user to confirm with `/context` in a fresh session that `CLAUDE.md`
+   appears once under **Memory files**.
 
 Pre-existing docs usually need only the `> Purpose:` header prepended — leave their
 content alone. **Don't prepend with `printf '%s\n\n%s' "$hdr" "$(cat $f)"`**:
@@ -461,6 +461,8 @@ name is out of scope.
   Any contradiction between it and the tree is reported in full; that is the signal the
   owner's notes have rotted.
 - Anything you couldn't answer, named as an open question rather than guessed.
+- A reminder to confirm with `/context` in a fresh session that `CLAUDE.md` appears
+  once under **Memory files**.
 
 **Never commit. Never push.** Leave the tree dirty for review.
 

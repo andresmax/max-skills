@@ -5,7 +5,7 @@ description: "Fast, scannable morning tech briefing in the terminal: Hacker News
 
 # /morning-brief — the day's tech news, in one screen
 
-Fetch **all** sources below in parallel — maximize parallel tool calls. Output
+Fetch the sources below in parallel. Output
 directly to the terminal. No file writes, no state, no commentary.
 
 ---

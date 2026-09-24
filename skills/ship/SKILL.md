@@ -1,6 +1,6 @@
 ---
 name: ship
-description: "Autopilot feature pipeline: brief, research, spec (Max's green light), build, verify, land on a feature branch. Two human touchpoints only, the brief and the spec approval. Auto-detects stack, test command and reviewers in any repo. Use on /ship, 'ship this feature', 'build X end to end'. Never pushes, opens a PR, merges or deploys."
+description: "For client repos; product repos skip specs and branches. Autopilot feature pipeline: brief, research, spec (Max's green light), build, verify, land on a feature branch. Two human touchpoints only, the brief and the spec approval. Auto-detects stack, test and E2E commands, and reviewers in any repo. Use on /ship, 'ship this feature', 'build X end to end'. Never pushes, opens a PR, merges or deploys."
 ---
 
 # /ship — brief, spec, build, verify, branch
@@ -16,7 +16,7 @@ committed to its own branch — **no push, no PR, no merge, no deploy.**
 
 ## Non-negotiables
 
-1. **Ask once, then go quiet.** All input is front-loaded into the brief. After
+1. **Ask once, then run without further questions.** All input is front-loaded into the brief. After
    that, the only stop is the spec green light.
 2. **The spec needs approval before any code.** Always. No exceptions, any repo.
 3. **Verify-gated.** Nothing advances past a red gate. The pipeline saves typing,
@@ -42,8 +42,14 @@ never treat it as an error or "unknown profile."
      "no test specified")
    - `pyproject.toml` / `pytest.ini` → `pytest`; `go.mod` → `go test ./...`
    - none of the above → ask for the test command in the brief
-   - **reviewers:** always a general `code-reviewer`; add any domain reviewer that
-     exists in the repo's `.claude/agents/`.
+   - **e2e:** the repo's `docs/conventions.md` if it names the E2E command; else
+     `test/system/` with files → `bin/rails test:system` (plain `bin/rails test`
+     skips system tests); `spec/system/` → `bundle exec rspec spec/system`; a
+     `playwright.config.*` → its `package.json` script, else `npx playwright test`;
+     else `none`, and the spec sets the harness up (see Tests below)
+   - **reviewers:** a general code review (the repo's `code-reviewer` agent if
+     `.claude/agents/` has one, else a general-purpose subagent briefed to review the
+     diff); add any domain reviewer that exists in `.claude/agents/`.
    - **tracker:** if a connected MCP server shares the repo's name, use it; else
      `none`.
    - **profile:** `client` if this is someone else's codebase, else `product`. The
@@ -51,7 +57,7 @@ never treat it as an error or "unknown profile."
      restyling, and a higher bar for touching anything outside the brief. If you
      can't tell, it's `client`.
 3. **Apply overrides:** if `~/.claude/ship-profiles.json` exists and has this repo's
-   key, let its `tracker` / `tests` / `reviewers` / `profile` override the detected
+   key, let its `tracker` / `tests` / `e2e` / `reviewers` / `profile` override the detected
    values. That's all the file does:
    ```json
    {
@@ -59,7 +65,7 @@ never treat it as an error or "unknown profile."
      "my-app": { "profile": "product", "tracker": "linear", "tests": "bin/rails test", "reviewers": ["code-reviewer"] }
    }
    ```
-4. State the resolved config in one line (repo · profile · tracker · tests) and
+4. State the resolved config in one line (repo · profile · tracker · tests · e2e) and
    proceed. No "this repo isn't registered" friction.
 
 ---
@@ -77,7 +83,7 @@ until the spec gate.
 - **Constraints** — perf, deadline, "don't touch X", or the test command if the
   repo was unknown
 
-Record the answers as a `## Brief` block at the top of the spec. Then go quiet.
+Record the answers as a `## Brief` block at the top of the spec. Then run without further questions until the spec gate.
 
 ---
 
@@ -114,45 +120,48 @@ The spec must contain:
 - `## Data & Migration` — schema changes, migration, **rollback path**
 - `## Fits-the-product checklist` — reuses existing components, follows naming, no
   duplicated logic, regression notes
-- `## Phases` — functional-first; **every phase ships something testable**; no
-  back-to-back plumbing. Each phase: objective, tasks, success criteria, files
-  likely affected, recommended agents, and **test depth: `boundary` or
-  `provisional`** (see below)
+- `## Phases` — functional-first; **every phase ships something an E2E test can
+  drive**; no back-to-back plumbing. Each phase: objective, tasks, success
+  criteria, files likely affected, recommended agents, its **E2E flows**, and a
+  **failure list** if it has code on the isolated list (see below)
 - `## Acceptance criteria` — concrete, checkable, must-pass
-- `## Test plan` — split into **Boundary (now)** and **Deferred**
+- `## Test plan` — the E2E flows, each tied to the acceptance criteria it proves
+  and the artifact it leaves, then the failure lists with the reason each unit
+  needs isolation
 
-### Test depth — declare it per phase, in the spec
+### Tests — E2E by default, declared per phase in the spec
 
-> **The rule that overrides everything below: a feature gets no test suite until
-> its happy path has run for real, once.**
+> **The rule that overrides everything below: before any fake exists, the feature
+> meets its real dependency once.** For anything touching an external API, the
+> first verification is one live call — not a stub, not a fixture.
 >
-> Tests written before the thing has ever run do not test the product. They test
-> that your assumptions are internally consistent, and then report that back as
-> confidence. A stub agrees with whatever you already believe.
->
-> This is not theoretical. A project shipped **489 tests, ~1,700 assertions, all
-> green**, over a third-party integration that had never made one request to that
-> third party. First real contact failed instantly — the app manifest asked for
-> event types the vendor does not allow you to subscribe to — and no test could
-> have caught it, because from inside the app a real event name and a made-up one
-> are both just strings. The same stubs answered instantly, so a discovery pass
-> that took **22 seconds** in production looked free. One live call would have
-> found both in five minutes, before 3,800 lines and four deploys.
->
-> So: **build it, run it against the real dependency, then test.** For anything
-> touching an external API, the first verification is one live call — not a stub,
-> not a fixture. Until that has happened, `boundary` does not license a suite
-> either; it licenses *one* test once the path works.
+> Stubs can't catch a contract the real dependency rejects: from inside the app a valid
+> event name and an invalid one are both just strings, and a stub also answers instantly,
+> hiding latency the real call has. One live call finds both kinds of failure in minutes.
 >
 > And never report "tests green / all gates passed" as evidence a feature works
 > when it has never met its real dependency. Say plainly that it hasn't.
 
-Writing an exhaustive suite for behaviour still being *decided* is waste: the design
-pivots and the tests get deleted, having caught nothing. Worse, they slow the pivot
-down. So every phase declares one of two depths.
+**No unit tests written after the code.** A test written after its subject tends to
+assert whatever the code already does, so it passes and catches nothing.
 
-**`boundary` — full tests immediately, no exceptions.** Anything that fails *open*,
-is expensive to get wrong, and does not churn when the product changes its mind:
+**E2E is the default test, and usually the only one.** Each phase names the flows its
+E2E tests drive the way a user or client would: a browser for UI, HTTP for APIs and
+MCP, the real binary for a CLI. One E2E per flow in the acceptance criteria. Every run
+leaves an artifact (a trace, screenshots or a result file) at the path the repo's
+conventions name, else `tmp/e2e/`, plus the one command that regenerates it. Seeded
+data and in-process fakes keep it repeatable, after the live call above has proved
+each third party's contract.
+
+If `e2e` resolved to `none`, the spec's first phase sets up the harness (Rails:
+Capybara with `capybara-playwright-driver`, a trace saved on every run) and adds its
+command and artifact path to the repo's `docs/conventions.md`. If the repo's
+`decisions.md` rules out browser tests, follow the repo: drive the flows over HTTP the
+way its integration tests do, and say in the final report that there is no browser
+artifact.
+
+**Isolated tests need a reason, and they are written before the code.** Only where
+E2E can't reach the failure cheaply:
 
 - authn/authz, session handling, anything deciding who may see or do what
 - signature/HMAC verification, token validation, CSRF, SSRF guards
@@ -160,19 +169,11 @@ is expensive to get wrong, and does not churn when the product changes its mind:
 - money, billing, quotas
 - data loss: destructive migrations, deletes, cascade behaviour
 - idempotency and replay guards on anything accepting outside traffic
+- pure logic with many edge cases, like a parser or a matcher
 
-**`provisional` — one happy-path smoke test, and stop.** Product semantics genuinely
-still being decided: what states exist, what a card says, what a job does when it
-can't decide, copy, layout, the shape of a model's API. For these, write:
-
-- one test proving the thing runs and the happy path works
-- a `# TODO(harden): <what is deliberately untested and why>` marker at the top of
-  the relevant file(s)
-
-and **do not enumerate branches, edge cases or error paths yet.**
-
-Default to `provisional` for anything in the first build of a new feature. Promote
-to `boundary` only for the list above. When unsure, it's `provisional`.
+For these the phase carries a **failure list**: every way the unit can fail. In BUILD
+the list becomes tests first, each one runs red, and then the code gets written.
+Anything outside this list gets its E2E and nothing else.
 
 **Then STOP.** Present a tight summary + the spec path and call `AskUserQuestion`:
 
@@ -195,6 +196,10 @@ Execute the spec phase by phase.
 - **Surgical fence:** agents may only change what the phase requires. No
   opportunistic refactors.
 - Each phase must hit its success criteria before the next begins. Functional-first.
+- A phase with a failure list writes those tests first and runs them red before
+  writing the code they cover. E2E tests get written alongside the flow they drive.
+- Before writing a fake for a third party, make the one live call that proves its
+  contract and record what it returned in the spec. The fake mirrors that response.
 
 ---
 
@@ -203,28 +208,29 @@ Execute the spec phase by phase.
 Run in order. Any red → stop, report what failed, don't proceed:
 
 0. **Does it actually run?** — the gate that matters most and the one most ladders
-   are missing entirely. Exercise the feature's happy path against the **real**
-   dependency: a live call to the third-party API, the actual page rendered in a
-   browser, the real binary invoked. Not a stub, not a fixture, not a test. If it
-   cannot be reached without a human (a credential only they have, a click only
-   they can make), **stop and say so** rather than counting the remaining gates as
-   proof — every other rung is a self-check that can pass on something that has
-   never worked.
-1. **Acceptance criteria** — self-check each item from the spec.
-2. **Test suite green** — run the resolved `tests`; fix surgically; re-run until
-   green. Green means *the tests that exist* pass; a `provisional` phase is not a
-   red gate for having thin coverage — that is the point of it. Gate 0 must have
-   passed first: a green suite over code that has never run is not evidence and
-   must never be reported as though it were.
+   are missing entirely. First, confirm every third party the feature touches got
+   its live call during BUILD, and make any call a phase skipped. Then the phase's
+   E2E tests drive the feature the
+   way a user or client would and leave their artifacts; record each artifact's path
+   and the command that regenerates it. If a flow cannot be reached without a human
+   (a credential only they have, a click only they can make), **stop and say so**
+   rather than counting the remaining gates as proof, and mark it
+   `# TODO(harden): <flow> has no E2E because <reason>`. Every other rung is a
+   self-check that can pass on something that has never worked.
+1. **Acceptance criteria** — each item is proved by an E2E assertion or checked by
+   hand, and the report says which.
+2. **Full suite green** — run the resolved `tests` and `e2e`; fix surgically; re-run
+   until green. Gate 0 must have passed first: a green suite over code that has never
+   run is not evidence and must never be reported as though it were.
 3. **Adversarial review** — a skeptic subagent tries to *break* it (edge cases,
    regressions, security). It defaults to "not done" and must be argued down. **This
    is the real safety net during a first build**, and it does not care whether tests
-   exist — it reads the code and attacks it. Findings it confirms get a regression
-   test regardless of the phase's declared depth: a bug that was real once is no
-   longer a semantic still being decided.
-4. **Domain reviewers** — always `code-reviewer`; plus the profile's reviewers; run
-   a security review if the work touches auth, payments, or data; run a design audit
-   if it touches UI.
+   exist — it reads the code and attacks it. Each finding it confirms gets a failing
+   test that reproduces it first (E2E where the bug is reachable from outside,
+   isolated otherwise), then the fix.
+4. **Domain reviewers** — always the general code review from Setup; plus the
+   profile's reviewers; run a security review if the work touches auth, payments,
+   or data; run a design audit if it touches UI.
 
 CI is intentionally **not** in this ladder — CI needs a push, and push is manual.
 
@@ -254,10 +260,10 @@ CI is intentionally **not** in this ladder — CI needs a push, and push is manu
 
 ## Final report
 
-End with: spec path · branch name · verify ladder results (✅/❌ per gate) ·
-tracker updates made · the push+PR commands. Then stop.
+End with: spec path · branch name · verify ladder results (✅/❌ per gate) · each
+E2E artifact's path and the command that regenerates it · tracker updates made ·
+the push+PR commands. Then stop.
 
-**Also list the `provisional` phases and what they deliberately left untested**, in
-one short block, ending with: *"Run `/harden` once you've used this and it behaves
-right."* Never present thin coverage as an oversight — it was a decision, and naming
-it is what makes it one.
+**Also list any flow left without an E2E, and why**, in one short block, ending
+with: *"Run `/harden` once it can be reached."* Never present a missing E2E as an
+oversight; it was a decision, and naming it is what makes it one.

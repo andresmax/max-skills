@@ -101,7 +101,7 @@ Each step names four things:
 - **What should happen** — the observable result. Where a bug was fixed this
   session, name what should *not* happen, because that's the real assertion.
 
-Cap it at seven steps. Fewer is better. If the change is invisible by hand — a
+Keep only the steps that check what the tests can't; fewer is better. If the change is invisible by hand — a
 background job, a migration, a mailer — say how to observe it instead: the admin
 page that reflects it, the row count that should have moved, the inbox it lands in.
 
