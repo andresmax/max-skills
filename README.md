@@ -17,8 +17,6 @@ instructions from a file.
 | **[`docs`](skills/docs)** | Makes a repo explain itself in about a second. A thin `AGENTS.md` router — hard-capped at 120 lines — plus a `docs/` library it points into, with `CLAUDE.md` as a symlink so every toolchain reads one file. Kills the "read my notes app for context" dependency that breaks the moment someone else clones your repo. |
 | **[`ship`](skills/ship)** | Autopilot feature pipeline: brief → research → spec → *your green light* → build → verify → land on a branch. Two human touchpoints, everything else unattended. Never pushes. |
 | **[`harden`](skills/harden)** | Writes the test suite you deliberately deferred, now that the design is settled. Proves each test bites by breaking its subject and watching it fail. Refuses to run on code that has never met its real dependency. |
-| **[`recap`](skills/recap)** | End-of-session summary in plain English: what's now possible, exactly what to click to test it, what has to be set up before it works anywhere but your laptop, and a block you can paste to a non-technical teammate. |
-| **[`morning-brief`](skills/morning-brief)** | One screen of the day's tech news — HN, Reddit, GitHub Trending, YouTube, Product Hunt, RSS — fetched in parallel, printed as clickable links. The feed lists are yours to edit. |
 
 ## The two ideas worth stealing even if you skip the skills
 
@@ -50,10 +48,10 @@ ln -s ~/Code/max-skills/skills/harden ~/.claude/skills/harden
 Or copy the folder in if you'd rather edit freely:
 
 ```bash
-cp -r ~/Code/max-skills/skills/recap ~/.claude/skills/
+cp -r ~/Code/max-skills/skills/ship ~/.claude/skills/
 ```
 
-Either way, `/docs`, `/harden`, `/recap`, `/ship` and `/morning-brief` become
+Either way, `/docs`, `/harden` and `/ship` become
 available in your next session. Skills also auto-trigger from their `description`,
 so you often don't need to type the slash command at all.
 
@@ -77,9 +75,6 @@ Only `ship` reads an optional config, and it works fine without one.
 ```
 
 A repo that isn't listed still works — everything is detected from the repo itself.
-
-`morning-brief` has its feeds inline, in one clearly-marked block at the top. Swap
-in your own subreddits and channels; nothing else in the file needs to change.
 
 ## A note on what's here
 
