@@ -1,6 +1,6 @@
 ---
 name: harden
-description: "Add the E2E test a shipped feature is missing, with its artifact and the command that regenerates it. Scope comes from TODO(harden) markers, /prune's coverage holes and recent features with no E2E. Derives correctness from the spec and proves each test bites by breaking its subject. Use on /harden, 'add the E2E', 'backfill the tests'. Not for unit tests on code that already exists, or for code that never met its real dependency."
+description: "Add the E2E test a shipped feature is missing, with its artifact and the command that regenerates it. Scope comes from TODO(harden) markers, /prune's coverage holes and recent features with no E2E. Derives correctness from the issue's Done when list and proves each test bites by breaking its subject. Use on /harden, 'add the E2E', 'backfill the tests'. Not for unit tests on code that already exists, or for code that never met its real dependency."
 ---
 
 # /harden — add the E2E a feature shipped without
@@ -14,8 +14,8 @@ argument, harden everything marked or recently shipped without an E2E.
 
 The test policy is E2E first. A feature is verified by driving it the way a user or
 client would, and every run leaves an artifact plus the one command that regenerates
-it. `/ship` writes that E2E during the build. `/harden` covers what got past it: a
-flow `/ship` marked `TODO(harden)` because it couldn't be reached at the time,
+it. The build writes that E2E. `/harden` covers what got past it: a flow marked
+`TODO(harden)` because it couldn't be reached at the time,
 features built before the policy, and the coverage holes `/prune` proves by mutation.
 
 `/harden` never writes unit tests for code that already exists. A test written after
@@ -72,8 +72,8 @@ there is no browser artifact.
 the code it tests proves only that the code does what it does, and it locks in bugs as
 specification. Read, in this order:
 
-1. **The spec** (`docs/prds/`, `docs/specs/`, the issue). Acceptance criteria and use
-   cases are the contract.
+1. **The issue's Done when list**, then any older spec in `docs/prds/` where one
+   exists. Those outcomes are the contract.
 2. **Class-level comments.** Good codebases explain why a thing is shaped the way it
    is, usually citing a real incident. Those paragraphs are executable intent.
 3. **Git history for the feature.** Commit messages say what was decided and what was
@@ -90,14 +90,14 @@ decides which.
 
 Per flow in scope, drive it from outside and cover, in this order:
 
-1. **The stated contract** — every acceptance criterion the flow touches.
+1. **The stated contract** — every Done when item the flow touches.
 2. **The refusals** — what a user without the right role, state or input must not be
    able to do, tried through the UI, or through a crafted request where that's how
    someone would try it.
 3. **Error and absence paths a user can reach** — the third party returned garbage or
    a 500, the record was deleted, the field is empty.
 4. **Regressions for anything an adversarial pass found** during the original build.
-   Check the spec and commit messages for confirmed findings and assert they stay
+   Check the issue and commit messages for confirmed findings and assert they stay
    fixed.
 
 Every run leaves its artifact (a trace, screenshots or a result file) at the path the

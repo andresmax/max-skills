@@ -15,7 +15,6 @@ instructions from a file.
 | Skill | What it does |
 |---|---|
 | **[`docs`](skills/docs)** | Makes a repo explain itself in about a second. A thin `AGENTS.md` router — hard-capped at 120 lines — plus a `docs/` library it points into, with `CLAUDE.md` as a symlink so every toolchain reads one file. Kills the "read my notes app for context" dependency that breaks the moment someone else clones your repo. |
-| **[`ship`](skills/ship)** | Autopilot feature pipeline: brief → research → spec → *your green light* → build → verify → land on a branch. Two human touchpoints, everything else unattended. Never pushes. |
 | **[`harden`](skills/harden)** | Writes the test suite you deliberately deferred, now that the design is settled. Proves each test bites by breaking its subject and watching it fail. Refuses to run on code that has never met its real dependency. |
 
 ## The two ideas worth stealing even if you skip the skills
@@ -31,9 +30,9 @@ doesn't survive without one.
 before first contact with a real dependency test your assumptions, then report that
 back as confidence. I shipped 489 green tests over an integration that had never
 made a single real request; it failed on the first one, and no stub could have
-caught it. `ship` splits test depth in two — boundary code gets tested immediately,
-product semantics get one smoke test and a `TODO(harden)` marker — and `harden` is
-the other half of the bargain.
+caught it. So test depth splits in two: boundary code gets tested immediately,
+product semantics get one E2E and a `TODO(harden)` marker where it can't reach yet,
+and `harden` is the other half of the bargain.
 
 ## Install
 
@@ -48,39 +47,21 @@ ln -s ~/Code/max-skills/skills/harden ~/.claude/skills/harden
 Or copy the folder in if you'd rather edit freely:
 
 ```bash
-cp -r ~/Code/max-skills/skills/ship ~/.claude/skills/
+cp -r ~/Code/max-skills/skills/harden ~/.claude/skills/
 ```
 
-Either way, `/docs`, `/harden` and `/ship` become
+Either way, `/docs` and `/harden` become
 available in your next session. Skills also auto-trigger from their `description`,
 so you often don't need to type the slash command at all.
 
 Project-scoped instead of global? Same thing, into `.claude/skills/` inside the
 repo.
 
-## Configuration
-
-Only `ship` reads an optional config, and it works fine without one.
-`~/.claude/ship-profiles.json` overrides auto-detection for specific repos:
-
-```json
-{
-  "my-app": {
-    "profile": "product",
-    "tracker": "linear",
-    "tests": "bin/rails test",
-    "reviewers": ["code-reviewer"]
-  }
-}
-```
-
-A repo that isn't listed still works — everything is detected from the repo itself.
-
 ## A note on what's here
 
 These lean Rails and Hotwire in places, because that's what I build. The
 *mechanisms* are stack-agnostic and the skills detect what they're looking at —
-`ship` reads your `package.json` scripts or your `go.mod` the same way it reads a
+`harden` reads your `package.json` scripts or your `go.mod` the same way it reads a
 `Gemfile`. Where something is genuinely Rails-specific it's marked as such
 (`harden` ends with a list of Minitest traps that have each cost me an afternoon).
 

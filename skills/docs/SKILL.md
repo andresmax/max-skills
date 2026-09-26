@@ -44,8 +44,7 @@ docs/
 ├── decisions.md        ← ADR log, newest first, a paragraph each
 ├── backlog.md          ← what's deliberately unfinished, collected from the code
 ├── ROADMAP.md          ← direction, set by the owner. NEVER authored by this skill
-├── CHANGELOG.md        ← what shipped
-└── prds/               ← specs, if the project works that way
+└── CHANGELOG.md        ← what shipped
 ```
 
 **The router answers "what will I get wrong if nobody tells me?"** The library
@@ -69,7 +68,6 @@ of contents makes it read everything; a table of triggers makes it read one.
 | `docs/CHANGELOG.md` | Asking what shipped recently, or when something changed |
 | `docs/backlog.md` | Picking up work, or wondering what's deliberately unfinished |
 | `docs/ROADMAP.md` | Picking up work — what's being built now, and the live constraints |
-| `docs/prds/` | Implementing a spec — the spec is a complete instruction |
 ```
 
 ---
